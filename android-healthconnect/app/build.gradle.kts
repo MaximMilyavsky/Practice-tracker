@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.maxim.healthconnectsleep"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.maxim.healthconnectsleep"
