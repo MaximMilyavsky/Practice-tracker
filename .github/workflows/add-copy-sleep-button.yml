@@ -1,0 +1,52 @@
+name: Add sleep copy button
+
+on:
+  push:
+    paths:
+      - '.github/workflows/add-copy-sleep-button.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch tracker
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          old_html = '''<label class="s">Комментарий о сне / другие факторы</label><textarea id="slComment" placeholder="Например: шахматы вечером, головная боль, полный желудок, необычная усталость…"></textarea>
+</details>'''
+          new_html = '''<label class="s">Комментарий о сне / другие факторы</label><textarea id="slComment" placeholder="Например: шахматы вечером, головная боль, полный желудок, необычная усталость…"></textarea>
+<div class="actions"><button id="copySleepBtn" class="btn" type="button">📋 Скопировать запись сна</button></div>
+<div id="copySleepStatus" class="status"></div>
+</details>'''
+          if old_html not in s:
+              raise SystemExit('Sleep comment block not found')
+          s = s.replace(old_html, new_html, 1)
+
+          old_js = '''$("#sleepiness").addEventListener("input",e=>{e.target.dataset.touched="1";updateSleepLabels();scheduleAutosave()});'''
+          new_js = '''async function copySleepRecord(){capture(false);let s=day().morning.sleep;if(!sleepHasData(s)){$("#copySleepStatus").textContent="Сначала заполните запись сна.";return}let text=$("#date").value+"\\n"+sleepDesc(s);try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text)}else{let ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.focus();ta.select();document.execCommand("copy");ta.remove()}$("#copySleepStatus").textContent="Запись сна скопирована — можно вставить её в ChatGPT."}catch(e){$("#copySleepStatus").textContent="Не удалось скопировать. Откройте итог дня и скопируйте текст вручную."}}
+$("#sleepiness").addEventListener("input",e=>{e.target.dataset.touched="1";updateSleepLabels();scheduleAutosave()});
+$("#copySleepBtn").onclick=copySleepRecord;'''
+          if old_js not in s:
+              raise SystemExit('Sleepiness handler not found')
+          s = s.replace(old_js, new_js, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Add copy sleep record button"
+          git push
