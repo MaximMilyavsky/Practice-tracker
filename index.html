@@ -42,6 +42,7 @@ textarea{min-height:90px}.exercise{border:1px solid var(--b);border-radius:10px;
 <details class="card" id="sleepCard" open>
 <summary>😴 Сон за прошедшую ночь</summary>
 <div class="muted" style="margin-top:8px">Запись относится к ночи, завершившейся выбранной датой. Поля автоматически сохраняются вместе с утренней записью.</div>
+<div id="sleepCloudStatus" class="status" style="margin-top:8px;font-weight:700">Автосохранение включено.</div>
 <div class="grid">
   <div class="sleepScale">
     <div class="rangeHead"><b>Восстановление</b><span class="rangeVal"><span id="sleepRecoveryVal">—</span>/10</span></div>
@@ -168,6 +169,16 @@ function captureSleep(d){let s=ensureSleep(d),r=$("#sleepRecovery"),sl=$("#sleep
 function capture(mark=true){let d=data();d.cold=$("#cold").checked;$$('[data-c]').forEach(x=>d.c[x.dataset.c]=x.checked);d.kata=$("#kata").value;d.med=num($("#med").value,600);d.mood=$("#mood").value;d.walk=num($("#walk").value,1000);d.steps=num($("#steps").value,100000);d.pace=$("#pace").value;d.note=$("#note").value.trim();if(period==="morning")captureSleep(d);ex.forEach(([id])=>{let s=d.s[id];s.sets=num($('[data-sets="'+id+'"]')?.value,10);$$('[data-box="'+id+'"] input').forEach((x,i)=>s.v[i]=num(x.value,1000))});if(mark)d.saved=new Date().toISOString();persist();return d}
 async function cloudSave(date,p,d){if(!session||!hasData(d))return;const ts=d.saved||new Date().toISOString(),base={user_id:session.user.id,entry_date:date,period:p,payload:d,updated_at:ts};const {data:existing,error:findError}=await sb.from('practice_entries').select('id').eq('user_id',session.user.id).eq('entry_date',date).eq('period',p).limit(1);if(findError)throw findError;if(existing&&existing.length){const {error}=await sb.from('practice_entries').update({payload:d,updated_at:ts}).eq('id',existing[0].id).eq('user_id',session.user.id);if(error)throw error}else{const {error}=await sb.from('practice_entries').insert(base);if(error)throw error}}
 async function save(mark=true){let d=capture(mark);if(!mark)return;$("#status").textContent=(period==="morning"?"Утро":"Вечер")+" сохранено локально…";try{if(session){await cloudSave($("#date").value,period,d);$("#status").textContent=(period==="morning"?"Утро":"Вечер")+" сохранено локально и в облаке."}else{$("#status").textContent=(period==="morning"?"Утро":"Вечер")+" сохранено локально. Войдите для облачной синхронизации."}}catch(e){$("#status").textContent="Сохранено локально, но облако недоступно: "+e.message}}
+function cloudClock(){return new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"})}
+function setSleepCloudStatus(state){
+  let el=$("#sleepCloudStatus");if(!el)return;
+  if(state==="saving")el.textContent="⏳ Сохраняю изменения…";
+  else if(state==="cloud")el.textContent="☁️ Все изменения сохранены в облаке · "+cloudClock();
+  else if(state==="local")el.textContent="💾 Все изменения сохранены на телефоне · "+cloudClock();
+  else if(state==="error")el.textContent="⚠️ Сохранено на телефоне, облако недоступно · "+cloudClock();
+  else if(state==="synced")el.textContent="☁️ Синхронизировано с облаком · "+cloudClock();
+  else el.textContent="Автосохранение включено.";
+}
 function scheduleAutosave(){
   clearTimeout(saveTimer);
   capture(false);
@@ -175,24 +186,28 @@ function scheduleAutosave(){
   d.saved=new Date().toISOString();
   persist();
   $("#status").textContent="Автосохранено локально…";
+  if(p==="morning")setSleepCloudStatus("saving");
   saveTimer=setTimeout(async()=>{
     if(session){
       try{
         await cloudSave(date,p,d);
         $("#status").textContent="✓ Автосохранено локально и в облаке.";
+        if(p==="morning")setSleepCloudStatus("cloud");
       }catch(e){
         $("#status").textContent="✓ Сохранено локально; ошибка облачной синхронизации.";
+        if(p==="morning")setSleepCloudStatus("error");
       }
     }else{
       $("#status").textContent="✓ Автосохранено локально.";
+      if(p==="morning")setSleepCloudStatus("local");
     }
   },250);
 }
 function loadSleep(d){let s=ensureSleep(d),r=$("#sleepRecovery"),sl=$("#sleepiness");r.value=s.recovery??6;r.dataset.touched=s.recovery===null?"0":"1";sl.value=s.sleepiness??5;sl.dataset.touched=s.sleepiness===null?"0":"1";let rr=$("#sleepRecoverySaved"),ss=$("#sleepinessSaved");if(rr)rr.textContent=s.recovery===null?"":"✓ сохранено: "+s.recovery+"/10";if(ss)ss.textContent=s.sleepiness===null?"":"✓ сохранено: "+s.sleepiness+"/9";$("#slAppliance").checked=s.appliance;$("#slMask").checked=s.mask;$("#slAc").checked=s.ac;$("#slGotUp").checked=s.gotUp;$("#slToilet").checked=s.toilet;$("#slEarlyWake").checked=s.earlyWake;$("#slLateFood").checked=s.lateFood;$("#slNap").checked=s.nap;$("#slRinse").checked=s.rinse;$("#slShower").checked=s.shower;$("#slHumidity").checked=s.humidity;$("#slDisturbed").checked=s.disturbed;$("#slArousal").checked=s.arousal;$("#slAwakenings").value=s.awakenings||"";$("#slPosition").value=s.position;$("#slCongestion").value=s.congestion;$("#slDust").value=s.dust;$("#slSleepHours").value=s.sleepHours??"";$("#slAhi").value=s.ahi??"";$("#slOdi").value=s.odi??"";$("#slMinSpo2").value=s.minSpo2??"";$("#slSnore").value=s.snore??"";$("#slComment").value=s.comment||"";updateSleepLabels()}
-function load(){let d=data();$("#sleepCard").classList.toggle("hidden",period!=="morning");if(period==="morning")loadSleep(d);$("#cold").checked=d.cold;$$('[data-c]').forEach(x=>x.checked=!!d.c[x.dataset.c]);$("#kata").value=d.kata;$("#med").value=d.med||"";$("#mood").value=d.mood;$("#walk").value=d.walk||"";$("#steps").value=d.steps||"";$("#pace").value=d.pace;$("#note").value=d.note;ex.forEach(([id])=>{$('[data-sets="'+id+'"]').value=d.s[id].sets||"";renderSets(id)});$("#save").textContent=period==="morning"?"💾 Сохранить утро":"💾 Сохранить вечер";$("#status").textContent=d.saved?"Есть сохранённая запись.":"";$("#sumBox").classList.add("hidden")}
+function load(){let d=data();$("#sleepCard").classList.toggle("hidden",period!=="morning");if(period==="morning"){loadSleep(d);setSleepCloudStatus(session?"idle":"local")};$("#cold").checked=d.cold;$$('[data-c]').forEach(x=>x.checked=!!d.c[x.dataset.c]);$("#kata").value=d.kata;$("#med").value=d.med||"";$("#mood").value=d.mood;$("#walk").value=d.walk||"";$("#steps").value=d.steps||"";$("#pace").value=d.pace;$("#note").value=d.note;ex.forEach(([id])=>{$('[data-sets="'+id+'"]').value=d.s[id].sets||"";renderSets(id)});$("#save").textContent=period==="morning"?"💾 Сохранить утро":"💾 Сохранить вечер";$("#status").textContent=d.saved?"Есть сохранённая запись.":"";$("#sumBox").classList.add("hidden")}
 function sleepDesc(s){if(!sleepHasData(s))return "";let a=[];if(s.recovery!==null)a.push("Восстановление: "+s.recovery+"/10");if(s.sleepiness!==null)a.push("Сонливость: "+s.sleepiness+"/9");let gear=[];if(s.appliance)gear.push("капа");if(s.mask)gear.push("маска");if(s.ac)gear.push("кондиционер");if(gear.length)a.push("Условия: "+gear.join(", "));if(s.awakenings)a.push("Пробуждения: "+s.awakenings);if(s.gotUp)a.push("Вставал ночью: да");if(s.toilet)a.push("Туалет ночью: да");if(s.earlyWake)a.push("Раннее пробуждение: да");if(s.position)a.push("Положение: "+s.position);if(s.congestion)a.push("Нос: "+s.congestion);if(s.dust)a.push("Комната: "+s.dust);let f=[];if(s.lateFood)f.push("поздняя еда");if(s.nap)f.push("дневной сон");if(s.rinse)f.push("промывание носа");if(s.shower)f.push("душ");if(s.humidity)f.push("повышенная влажность");if(s.disturbed)f.push("внешние пробуждения");if(s.arousal)f.push("стресс/перевозбуждение");if(f.length)a.push("Факторы: "+f.join(", "));let o=[];if(s.sleepHours!==null)o.push("сон "+s.sleepHours+" ч");if(s.ahi!==null)o.push("AHI "+s.ahi);if(s.odi!==null)o.push("ODI "+s.odi);if(s.minSpo2!==null)o.push("min SpO₂ "+s.minSpo2+"%");if(s.snore!==null)o.push("храп "+s.snore+"%");if(o.length)a.push("RingConn/SnoreClock: "+o.join(", "));if(s.comment)a.push("Комментарий о сне: "+s.comment);return "СОН:\n"+a.join("\n")}
 function desc(d){let a=[];let sd=sleepDesc(d.sleep);if(sd)a.push(sd);if(d.cold)a.push("Обливание: да");let c=Object.entries(d.c||{}).filter(x=>x[1]).map(x=>x[0]);if(c.length)a.push("Практики: "+c.join("; "));if(d.kata)a.push("Ката тай-чи: "+d.kata);if(d.med)a.push("Медитация: "+d.med+" мин"+(d.mood?" — "+d.mood:""));if(d.walk||d.steps||d.pace){let p=[];if(d.walk)p.push(d.walk+" мин");if(d.steps)p.push(d.steps+" шагов");if(d.pace)p.push("темп "+d.pace);a.push("Ходьба: "+p.join(", "))}let ss=[];ex.forEach(([id,n,u])=>{let v=d.s?.[id];if(v?.sets)ss.push(n+": "+v.v.slice(0,v.sets).join(" / ")+" ("+u+")")});if(ss.length)a.push("Силовые:\n"+ss.join("\n"));if(d.note)a.push("Комментарий: "+d.note);return a.length?a.join("\n"):"Нет записей"}
-async function syncAll(){if(!session)return;$("#authStatus").textContent="Синхронизация…";const {data:rows,error}=await sb.from('practice_entries').select('entry_date,period,payload,updated_at').eq('user_id',session.user.id);if(error){$("#authStatus").textContent="Ошибка синхронизации: "+error.message;return}const remote=new Map((rows||[]).map(r=>[r.entry_date+'|'+r.period,r]));for(const [date,dv] of Object.entries(db.days)){for(const p of ['morning','evening']){const local=dv[p]||bp(),r=remote.get(date+'|'+p);const lt=local.saved?Date.parse(local.saved):0,rt=r?Date.parse(r.updated_at):0;if(r&&rt>lt){db.days[date][p]=r.payload}else if(hasData(local)&&lt>=rt){try{await cloudSave(date,p,local)}catch(e){}}}}for(const r of rows||[]){if(!db.days[r.entry_date])db.days[r.entry_date]={morning:bp(),evening:bp()};if(!db.days[r.entry_date][r.period]||!hasData(db.days[r.entry_date][r.period]))db.days[r.entry_date][r.period]=r.payload}persist();day();load();$("#authStatus").textContent="Синхронизация завершена."}
+async function syncAll(){if(!session)return;$("#authStatus").textContent="Синхронизация…";const {data:rows,error}=await sb.from('practice_entries').select('entry_date,period,payload,updated_at').eq('user_id',session.user.id);if(error){$("#authStatus").textContent="Ошибка синхронизации: "+error.message;return}const remote=new Map((rows||[]).map(r=>[r.entry_date+'|'+r.period,r]));for(const [date,dv] of Object.entries(db.days)){for(const p of ['morning','evening']){const local=dv[p]||bp(),r=remote.get(date+'|'+p);const lt=local.saved?Date.parse(local.saved):0,rt=r?Date.parse(r.updated_at):0;if(r&&rt>lt){db.days[date][p]=r.payload}else if(hasData(local)&&lt>=rt){try{await cloudSave(date,p,local)}catch(e){}}}}for(const r of rows||[]){if(!db.days[r.entry_date])db.days[r.entry_date]={morning:bp(),evening:bp()};if(!db.days[r.entry_date][r.period]||!hasData(db.days[r.entry_date][r.period]))db.days[r.entry_date][r.period]=r.payload}persist();day();load();$("#authStatus").textContent="Синхронизация завершена.";if(period==="morning")setSleepCloudStatus("synced")}
 function authUI(){const on=!!session;$("#signedOut").classList.toggle("hidden",on);$("#signedIn").classList.toggle("hidden",!on);$("#authUser").textContent=on?(session.user.email||session.user.id):""}
 async function signIn(){const email=$("#authEmail").value.trim(),password=$("#authPassword").value;if(!email||!password){$("#authStatus").textContent="Введите email и пароль.";return}$("#authStatus").textContent="Вход…";const {data,error}=await sb.auth.signInWithPassword({email,password});if(error){$("#authStatus").textContent="Ошибка входа: "+error.message;return}session=data.session;authUI();await syncAll()}
 async function signUp(){const email=$("#authEmail").value.trim(),password=$("#authPassword").value;if(!email||password.length<6){$("#authStatus").textContent="Введите email и пароль минимум из 6 символов.";return}$("#authStatus").textContent="Создание аккаунта…";const {data,error}=await sb.auth.signUp({email,password});if(error){$("#authStatus").textContent="Ошибка: "+error.message;return}session=data.session;authUI();$("#authStatus").textContent=session?"Аккаунт создан и вход выполнен.":"Аккаунт создан. Если Supabase прислал письмо, подтвердите email, затем войдите.";if(session)await syncAll()}
@@ -222,16 +237,22 @@ function saveSleepScaleNow(el,field,max){
   persist();
   let out=field==="sleepiness"?$("#sleepinessSaved"):$("#sleepRecoverySaved");
   if(out)out.textContent="✓ сохранено: "+sl[field]+"/"+max;
+  setSleepCloudStatus("saving");
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     if(session){
       try{
         await cloudSave($("#date").value,"morning",d);
         if(out)out.textContent="✓ сохранено в облаке: "+sl[field]+"/"+max;
+        setSleepCloudStatus("cloud");
       }catch(e){
         if(out)out.textContent="✓ сохранено на телефоне: "+sl[field]+"/"+max+" (ошибка облака)";
+        setSleepCloudStatus("error");
       }
-    }else if(out)out.textContent="✓ сохранено на телефоне: "+sl[field]+"/"+max;
+    }else{
+      if(out)out.textContent="✓ сохранено на телефоне: "+sl[field]+"/"+max;
+      setSleepCloudStatus("local");
+    }
   },250);
 }
 function bindSleepScale(selector,field,max){
