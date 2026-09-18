@@ -1,4 +1,4 @@
-const CACHE = "practice-tracker-cloud-v2";
+const CACHE = "practice-tracker-cloud-v3-weight";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", event => {
