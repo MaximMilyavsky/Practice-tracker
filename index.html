@@ -153,11 +153,11 @@ const iso=()=>{let d=new Date(),m=String(d.getMonth()+1).padStart(2,"0"),a=Strin
 const num=(v,max)=>Math.max(0,Math.min(max,Math.trunc(Number(v)||0)));
 const dec=(v,min,max)=>{if(v===""||v==null)return null;let n=Number(v);return Number.isFinite(n)?Math.max(min,Math.min(max,n)):null};
 function ensureSleep(x){x.sleep=Object.assign(bs(),x.sleep||{});return x.sleep}
-function day(){let d=$("#date").value;if(!db.days[d])db.days[d]={morning:bp(),evening:bp()};for(const p of ["morning","evening"]){if(!db.days[d][p])db.days[d][p]=bp();if(!db.days[d][p].s)db.days[d][p].s=bx();if(p==="morning")ensureSleep(db.days[d][p]);for(const [id] of ex)if(!db.days[d][p].s[id])db.days[d][p].s[id]={sets:0,v:[]}}return db.days[d]}
+function day(){let d=$("#date").value;if(!db.days[d])db.days[d]={morning:bp(),evening:bp()};for(const p of ["morning","evening"]){if(!db.days[d][p])db.days[d][p]=bp();if(!db.days[d][p].s)db.days[d][p].s=bx();if(p==="morning")ensureSleep(db.days[d][p]);if(!("weightKg" in db.days[d][p]))db.days[d][p].weightKg=null;for(const [id] of ex)if(!db.days[d][p].s[id])db.days[d][p].s[id]={sets:0,v:[]}}return db.days[d]}
 function data(){return day()[period]}
 function persist(){localStorage.setItem(K,JSON.stringify(db))}
 function sleepHasData(s){return !!(s&&(s.recovery!==null||s.sleepiness!==null||s.appliance||s.mask||s.ac||s.gotUp||s.toilet||s.earlyWake||s.lateFood||s.nap||s.rinse||s.shower||s.humidity||s.disturbed||s.arousal||s.awakenings||s.position||s.congestion||s.dust||s.sleepHours!==null||s.ahi!==null||s.odi!==null||s.minSpo2!==null||s.snore!==null||s.comment))}
-function hasData(d){return !!(d.cold||d.weightKg!==null||d.kata||d.med||d.walk||d.steps||d.note||sleepHasData(d.sleep)||Object.values(d.c||{}).some(Boolean)||ex.some(([id])=>d.s?.[id]?.sets>0))}
+function hasData(d){return !!(d.cold||d.weightKg!=null||d.kata||d.med||d.walk||d.steps||d.note||sleepHasData(d.sleep)||Object.values(d.c||{}).some(Boolean)||ex.some(([id])=>d.s?.[id]?.sets>0))}
 function checks(id,arr){let b=$("#"+id);arr.forEach(t=>{let l=document.createElement("label");l.className="check";let c=document.createElement("input");c.type="checkbox";c.dataset.c=t;let sp=document.createElement("span");sp.textContent=t;l.append(c,sp);b.append(l)})}
 Object.entries(lists).forEach(x=>checks(x[0],x[1]));
 ex.forEach(([id,n])=>{let r=document.createElement("div");r.className="exercise";r.innerHTML='<div class="name">'+n+'</div><label class="s">Количество подходов</label><input data-sets="'+id+'" type="number" min="0" max="10"><div class="sets" data-box="'+id+'"></div>';$("#strength").append(r);r.querySelector("input").addEventListener("input",()=>{capture(false);renderSets(id);scheduleAutosave()})});
