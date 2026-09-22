@@ -26,6 +26,12 @@ input[type=range]{width:100%;min-height:36px;accent-color:#6b8afd}.rangeHead{dis
 textarea{min-height:90px}.exercise{border:1px solid var(--b);border-radius:10px;padding:10px;margin-top:10px}.name{font-weight:700}.sets{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:8px}
 .hidden{display:none!important}.muted{color:var(--m);font-size:13px}.status{min-height:20px;color:var(--m);font-size:14px}.summary{white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:14px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px}.stat{border:1px solid var(--b);border-radius:10px;padding:10px}.stat b{font-size:23px}
+.metricChart{width:100%;min-height:280px;margin-top:12px;border:1px solid var(--b);border-radius:12px;padding:8px;overflow:hidden}
+.metricChart svg{display:block;width:100%;height:auto;min-height:260px}
+.chartSummary{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.chartSummary .stat{min-width:135px;flex:1}
+.chartControls{display:grid;grid-template-columns:minmax(220px,2fr) minmax(120px,1fr);gap:9px;margin-top:10px}
+@media(max-width:520px){.chartControls{grid-template-columns:1fr}}
 @media(max-width:520px){.grid{grid-template-columns:1fr}.actions .btn{width:100%}}
 </style>
 </head>
@@ -146,7 +152,23 @@ textarea{min-height:90px}.exercise{border:1px solid var(--b);border-radius:10px;
 </section>
 
 <section id="history" class="hidden"><div class="card"><b>История</b><div id="historyList" style="margin-top:10px"></div></div></section>
-<section id="stats" class="hidden"><div class="card"><b>Последние 7 дней</b><div id="stats7" class="stats" style="margin-top:10px"></div></div><div class="card"><b>Последние 30 дней</b><div id="stats30" class="stats" style="margin-top:10px"></div></div></section>
+<section id="stats" class="hidden">
+<div class="card">
+  <b>📈 График показателя</b>
+  <div class="muted" style="margin-top:6px">Выбери показатель и период. График строится по сохранённым дням; пропуски не заменяются нулями.</div>
+  <div class="chartControls">
+    <div><label class="s">Показатель</label><select id="metricSelect"></select></div>
+    <div><label class="s">Последние X дней</label><input id="chartDays" type="number" min="2" max="3650" step="1" value="30"></div>
+  </div>
+  <div id="metricChart" class="metricChart"></div>
+  <div id="metricChartSummary" class="chartSummary"></div>
+</div>
+<details class="card">
+  <summary>Краткая статистика</summary>
+  <div style="margin-top:12px"><b>Последние 7 дней</b><div id="stats7" class="stats" style="margin-top:10px"></div></div>
+  <div style="margin-top:18px"><b>Последние 30 дней</b><div id="stats30" class="stats" style="margin-top:10px"></div></div>
+</details>
+</section>
 <section id="data" class="hidden">
 <div class="card"><b>Резервная копия</b><div class="actions"><button id="json" class="btn">Экспорт JSON</button><button id="csv" class="btn">Экспорт CSV</button><label class="btn">Импорт JSON<input id="import" type="file" accept=".json" hidden></label></div><div id="dataStatus" class="status"></div></div>
 <div class="card"><b>☁️ Облако</b><div class="muted" style="margin-top:6px">Обычно синхронизация выполняется автоматически. Эта кнопка нужна только для принудительной проверки.</div><div class="actions"><button id="syncBtn" class="btn" type="button">🔄 Синхронизировать сейчас</button></div></div>
@@ -258,9 +280,142 @@ function screen(n){capture(false);$$('[data-screen]').forEach(b=>b.classList.tog
 $$('[data-screen]').forEach(b=>b.onclick=()=>screen(b.dataset.screen));
 function hist(){let b=$("#historyList");b.innerHTML="";let ds=Object.keys(db.days).sort().reverse();if(!ds.length){b.textContent="Нет сохранённых записей.";return}ds.forEach(k=>{let d=db.days[k],x=document.createElement("details");x.className="card";let s=document.createElement("summary");s.textContent=k;let t=document.createElement("div");t.className="summary";t.style.marginTop="8px";t.textContent="УТРО:\n"+desc(d.morning)+"\n\nВЕЧЕР:\n"+desc(d.evening);x.append(s,t);b.append(x)})}
 function since(n){let t=new Date();t.setDate(t.getDate()-n+1);return t.toISOString().slice(0,10)}
+function dayPartValue(d,p,key){
+  let x=d?.[p];
+  return x&&x[key]!==null&&x[key]!==undefined&&x[key]!==""?Number(x[key]):null;
+}
+function sumParts(d,key){
+  let vals=["morning","evening"].map(p=>dayPartValue(d,p,key)).filter(v=>Number.isFinite(v));
+  return vals.length?vals.reduce((a,b)=>a+b,0):null;
+}
+function anyPart(d,fn){
+  let vals=["morning","evening"].map(p=>fn(d?.[p])).filter(v=>v!==null&&v!==undefined);
+  return vals.length?(vals.some(Boolean)?1:0):null;
+}
+function sleepValue(d,key){
+  let sl=d?.morning?.sleep;
+  if(!sl)return null;
+  normalizeSleepScale(sl);
+  let v=sl[key];
+  return v===null||v===undefined||v===""?null:Number(v);
+}
+function strengthSets(d,id){
+  let vals=["morning","evening"].map(p=>Number(d?.[p]?.s?.[id]?.sets||0));
+  let has=["morning","evening"].some(p=>d?.[p]?.s?.[id]);
+  return has?vals.reduce((a,b)=>a+b,0):null;
+}
+function totalStrengthSets(d){
+  let found=false,total=0;
+  for(const [id] of ex){
+    for(const p of ["morning","evening"]){
+      if(d?.[p]?.s?.[id]){found=true;total+=Number(d[p].s[id].sets||0)}
+    }
+  }
+  return found?total:null;
+}
+function metricDefinitions(){
+  let m=[
+    {id:"recovery",label:"Сон — восстановление",unit:"/5",min:1,max:5,get:d=>sleepValue(d,"recovery")},
+    {id:"sleepiness",label:"Сон — сонливость",unit:"/5",min:1,max:5,get:d=>sleepValue(d,"sleepiness")},
+    {id:"fatigue",label:"Сон — усталость",unit:"/5",min:1,max:5,get:d=>sleepValue(d,"fatigue")},
+    {id:"sleepHours",label:"Сон — длительность",unit:" ч",min:0,get:d=>sleepValue(d,"sleepHours")},
+    {id:"awakenings",label:"Сон — пробуждения",unit:"",min:0,get:d=>sleepValue(d,"awakenings")},
+    {id:"ahi",label:"Сон — AHI",unit:"",min:0,get:d=>sleepValue(d,"ahi")},
+    {id:"odi",label:"Сон — ODI",unit:"",min:0,get:d=>sleepValue(d,"odi")},
+    {id:"minSpo2",label:"Сон — минимальный SpO₂",unit:"%",max:100,get:d=>sleepValue(d,"minSpo2")},
+    {id:"snore",label:"Сон — храп SnoreClock",unit:"%",min:0,get:d=>sleepValue(d,"snore")},
+    {id:"weight",label:"Вес",unit:" кг",get:d=>dayPartValue(d,"morning","weightKg")},
+    {id:"med",label:"Практики — медитация",unit:" мин",min:0,get:d=>sumParts(d,"med")},
+    {id:"walk",label:"Активность — ходьба",unit:" мин",min:0,get:d=>sumParts(d,"walk")},
+    {id:"steps",label:"Активность — шаги",unit:"",min:0,get:d=>sumParts(d,"steps")},
+    {id:"strength",label:"Силовые — всего подходов",unit:"",min:0,get:d=>totalStrengthSets(d)},
+    {id:"cold",label:"Практики — холодное обливание",binary:true,min:0,max:1,get:d=>anyPart(d,x=>x?!!x.cold:null)},
+    {id:"appliance",label:"Сон — капа",binary:true,min:0,max:1,get:d=>sleepValue(d,"appliance")},
+    {id:"mask",label:"Сон — маска",binary:true,min:0,max:1,get:d=>sleepValue(d,"mask")},
+    {id:"ac",label:"Сон — кондиционер",binary:true,min:0,max:1,get:d=>sleepValue(d,"ac")},
+    {id:"gotUp",label:"Сон — вставал ночью",binary:true,min:0,max:1,get:d=>sleepValue(d,"gotUp")},
+    {id:"toilet",label:"Сон — туалет ночью",binary:true,min:0,max:1,get:d=>sleepValue(d,"toilet")},
+    {id:"earlyWake",label:"Сон — раннее пробуждение",binary:true,min:0,max:1,get:d=>sleepValue(d,"earlyWake")},
+    {id:"lateFood",label:"Сон — поздняя еда",binary:true,min:0,max:1,get:d=>sleepValue(d,"lateFood")},
+    {id:"nap",label:"Сон — дневной сон",binary:true,min:0,max:1,get:d=>sleepValue(d,"nap")},
+    {id:"rinse",label:"Сон — промывание носа",binary:true,min:0,max:1,get:d=>sleepValue(d,"rinse")},
+    {id:"shower",label:"Сон — душ перед сном",binary:true,min:0,max:1,get:d=>sleepValue(d,"shower")},
+    {id:"humidity",label:"Сон — повышенная влажность",binary:true,min:0,max:1,get:d=>sleepValue(d,"humidity")},
+    {id:"disturbed",label:"Сон — внешние пробуждения",binary:true,min:0,max:1,get:d=>sleepValue(d,"disturbed")},
+    {id:"arousal",label:"Сон — стресс / перевозбуждение",binary:true,min:0,max:1,get:d=>sleepValue(d,"arousal")}
+  ];
+  for(const [id,name] of ex)m.push({id:"ex:"+id,label:"Силовые — "+name+", подходы",unit:"",min:0,get:d=>strengthSets(d,id)});
+  for(const arr of Object.values(lists))for(const name of arr)m.push({id:"practice:"+name,label:"Практика — "+name,binary:true,min:0,max:1,get:d=>anyPart(d,x=>x&&x.c?!!x.c[name]:null)});
+  return m;
+}
+let metricDefs=null;
+function ensureMetricOptions(){
+  if(!metricDefs)metricDefs=metricDefinitions();
+  let sel=$("#metricSelect");
+  if(!sel||sel.options.length)return;
+  for(const m of metricDefs){let o=document.createElement("option");o.value=m.id;o.textContent=m.label;sel.append(o)}
+  sel.value="sleepHours";
+}
+function metricDateMs(k){let [y,m,d]=k.split("-").map(Number);return Date.UTC(y,m-1,d)}
+function shortDate(k){let [y,m,d]=k.split("-");return d+"."+m}
+function fmtMetric(v,m){
+  if(m.binary)return v>=.5?"Да":"Нет";
+  let digits=Math.abs(v)>=100?0:Math.abs(v)>=10?1:2;
+  let out=Number(v.toFixed(digits)).toString();
+  return out+(m.unit||"");
+}
+function renderMetricChart(){
+  ensureMetricOptions();
+  let box=$("#metricChart"),sum=$("#metricChartSummary"),sel=$("#metricSelect");
+  if(!box||!sum||!sel)return;
+  let m=metricDefs.find(x=>x.id===sel.value)||metricDefs[0];
+  let n=Math.max(2,Math.min(3650,Number($("#chartDays").value)||30));
+  let endKey=$("#date").value||iso(),end=metricDateMs(endKey),start=end-(n-1)*86400000;
+  let pts=Object.keys(db.days).sort().map(k=>({date:k,ms:metricDateMs(k),value:m.get(db.days[k])}))
+    .filter(x=>x.ms>=start&&x.ms<=end&&Number.isFinite(x.value));
+  if(!pts.length){
+    box.innerHTML='<div class="muted" style="padding:24px;text-align:center">За выбранный период нет данных для этого показателя.</div>';
+    sum.innerHTML="";
+    return;
+  }
+  let vals=pts.map(x=>x.value),avg=vals.reduce((a,b)=>a+b,0)/vals.length,minV=Math.min(...vals),maxV=Math.max(...vals);
+  let yMin=m.min!==undefined?m.min:minV,yMax=m.max!==undefined?m.max:maxV;
+  if(yMin===yMax){yMin-=1;yMax+=1}
+  if(m.min===undefined){let pad=(yMax-yMin)*.12||1;yMin-=pad}
+  if(m.max===undefined){let pad=(yMax-yMin)*.12||1;yMax+=pad}
+  if(m.min===0)yMin=0;
+  let W=760,H=300,L=54,R=18,T=20,B=42,pw=W-L-R,ph=H-T-B;
+  const x=ms=>L+(ms-start)/Math.max(1,end-start)*pw;
+  const y=v=>T+(yMax-v)/(yMax-yMin)*ph;
+  let grid="",labels="";
+  for(let i=0;i<=4;i++){
+    let v=yMax-(yMax-yMin)*i/4,yy=T+ph*i/4;
+    let lab=m.binary?(i===0?"Да":i===4?"Нет":""):Number(v.toFixed(2)).toString();
+    grid+='<line x1="'+L+'" y1="'+yy+'" x2="'+(W-R)+'" y2="'+yy+'" stroke="currentColor" opacity=".12"/>';
+    if(lab)labels+='<text x="'+(L-8)+'" y="'+(yy+4)+'" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">'+lab+'</text>';
+  }
+  let path=pts.map((p,i)=>(i?"L":"M")+x(p.ms).toFixed(1)+","+y(p.value).toFixed(1)).join(" ");
+  let dots=pts.map(p=>'<circle cx="'+x(p.ms).toFixed(1)+'" cy="'+y(p.value).toFixed(1)+'" r="3.5" fill="currentColor"><title>'+p.date+": "+fmtMetric(p.value,m)+'</title></circle>').join("");
+  let first=new Date(start),mid=new Date(start+(end-start)/2),last=new Date(end);
+  const dl=d=>String(d.getUTCDate()).padStart(2,"0")+"."+String(d.getUTCMonth()+1).padStart(2,"0");
+  let xlabels='<text x="'+L+'" y="'+(H-12)+'" text-anchor="start" font-size="11" fill="currentColor" opacity=".7">'+dl(first)+'</text>'+
+    '<text x="'+(L+pw/2)+'" y="'+(H-12)+'" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">'+dl(mid)+'</text>'+
+    '<text x="'+(W-R)+'" y="'+(H-12)+'" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">'+dl(last)+'</text>';
+  box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+m.label+'">'+grid+labels+
+    '<line x1="'+L+'" y1="'+(T+ph)+'" x2="'+(W-R)+'" y2="'+(T+ph)+'" stroke="currentColor" opacity=".3"/>'+
+    '<path d="'+path+'" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+dots+xlabels+'</svg>';
+  let avgText=m.binary?Math.round(avg*100)+"%":fmtMetric(avg,m);
+  let minText=m.binary?"—":fmtMetric(minV,m),maxText=m.binary?"—":fmtMetric(maxV,m);
+  sum.innerHTML='<div class="stat"><b>'+avgText+'</b><div class="muted">Среднее · '+vals.length+' наблюд.</div></div>'+
+    (m.binary?'':'<div class="stat"><b>'+minText+'</b><div class="muted">Минимум</div></div><div class="stat"><b>'+maxText+'</b><div class="muted">Максимум</div></div>')+
+    '<div class="stat"><b>'+n+'</b><div class="muted">Дней в периоде</div></div>';
+}
 function stat(n){let r={med:0,walk:0,steps:0,cold:0,sets:0,days:0,sleepN:0,recovery:0,recoveryN:0,sleepiness:0,sleepinessN:0,fatigue:0,fatigueN:0,ahi:0,ahiN:0,snore:0,snoreN:0},st=since(n);Object.entries(db.days).forEach(([k,d])=>{if(k<st)return;let had=false;['morning','evening'].forEach(p=>{let x=d[p]||bp();r.med+=x.med||0;r.walk+=x.walk||0;r.steps+=x.steps||0;r.cold+=x.cold?1:0;ex.forEach(([id])=>r.sets+=x.s?.[id]?.sets||0);if(hasData(x))had=true});let s=d.morning?.sleep;if(s)normalizeSleepScale(s);if(sleepHasData(s)){r.sleepN++;if(s.recovery!==null){r.recovery+=s.recovery;r.recoveryN++}if(s.sleepiness!==null){r.sleepiness+=s.sleepiness;r.sleepinessN++}if(s.fatigue!==null){r.fatigue+=s.fatigue;r.fatigueN++}if(s.ahi!==null){r.ahi+=s.ahi;r.ahiN++}if(s.snore!==null){r.snore+=s.snore;r.snoreN++}}if(had)r.days++});return r}
 function fill(id,r){let b=$("#"+id);b.innerHTML="";let vals=[["Медитация",r.med+" мин"],["Ходьба",r.walk+" мин"],["Шаги",r.steps],["Обливания",r.cold],["Силовые подходы",r.sets],["Дни",r.days]];if(r.recoveryN)vals.push(["Среднее восстановление",(r.recovery/r.recoveryN).toFixed(1)+"/5"]);if(r.sleepinessN)vals.push(["Средняя сонливость",(r.sleepiness/r.sleepinessN).toFixed(1)+"/5"]);if(r.fatigueN)vals.push(["Средняя усталость",(r.fatigue/r.fatigueN).toFixed(1)+"/5"]);if(r.ahiN)vals.push(["Средний AHI",(r.ahi/r.ahiN).toFixed(1)]);if(r.snoreN)vals.push(["Средний храп",(r.snore/r.snoreN).toFixed(1)+"%"]);vals.forEach(x=>{let d=document.createElement("div");d.className="stat";d.innerHTML="<b>"+x[1]+"</b><div class=muted>"+x[0]+"</div>";b.append(d)})}
-function stats(){fill('stats7',stat(7));fill('stats30',stat(30))}
+function stats(){ensureMetricOptions();renderMetricChart();fill('stats7',stat(7));fill('stats30',stat(30))}
+$("#metricSelect").addEventListener("change",renderMetricChart);
+$("#chartDays").addEventListener("input",renderMetricChart);
+window.addEventListener("resize",()=>{if(!$("#stats").classList.contains("hidden"))renderMetricChart()});
 function dl(name,text,type){let u=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),500)}
 $("#json").onclick=()=>dl('practice-tracker.json',JSON.stringify(db,null,2),'application/json');
 $("#csv").onclick=()=>{let rows=[["date","period","summary"]];Object.keys(db.days).sort().forEach(k=>['morning','evening'].forEach(p=>rows.push([k,p,desc(db.days[k][p])])));dl('practice-tracker.csv',rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n'),'text/csv;charset=utf-8')};
