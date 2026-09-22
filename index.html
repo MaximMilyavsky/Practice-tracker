@@ -31,7 +31,7 @@ textarea{min-height:90px}.exercise{border:1px solid var(--b);border-radius:10px;
 </head>
 <body><main>
 <div class="top"><div><h1>Трекер практик</h1><div class="muted">Утро/вечер • сон • история • статистика • облачная синхронизация</div></div><div><label class="s">Дата</label><input id="date" type="date"></div></div>
-<div class="card" id="authCard"><b>☁️ Облачная синхронизация</b><div id="signedOut"><div class="grid"><div><label class="s">Email</label><input id="authEmail" type="email" autocomplete="email"></div><div><label class="s">Пароль</label><input id="authPassword" type="password" minlength="6" autocomplete="current-password"></div></div><div class="actions"><button id="loginBtn" class="btn primary" type="button">Войти</button><button id="signupBtn" class="btn" type="button">Создать аккаунт</button></div></div><div id="signedIn" class="hidden"><div class="muted">Вход выполнен: <span id="authUser"></span></div><div class="actions"><button id="syncBtn" class="btn" type="button">🔄 Синхронизировать</button><button id="logoutBtn" class="btn" type="button">Выйти</button></div></div><div id="authStatus" class="status"></div></div>
+<div class="card" id="authCard"><b>☁️ Облачная синхронизация</b><div id="signedOut"><div class="grid"><div><label class="s">Email</label><input id="authEmail" type="email" autocomplete="email"></div><div><label class="s">Пароль</label><input id="authPassword" type="password" minlength="6" autocomplete="current-password"></div></div><div class="actions"><button id="loginBtn" class="btn primary" type="button">Войти</button><button id="signupBtn" class="btn" type="button">Создать аккаунт</button></div></div><div id="signedIn" class="hidden"><div class="muted">Вход выполнен: <span id="authUser"></span></div><div class="actions"><button id="logoutBtn" class="btn" type="button">Выйти</button></div></div><div id="authStatus" class="status"></div></div>
 
 <div class="tabs">
 <button class="btn on" data-screen="today">Сегодня</button>
@@ -49,14 +49,6 @@ textarea{min-height:90px}.exercise{border:1px solid var(--b);border-radius:10px;
 <div id="sleepCloudStatus" class="status" style="margin-top:8px;font-weight:700">Автосохранение включено.</div>
 <div class="grid">
   <div class="sleepScale">
-    <div class="rangeHead"><b>Восстановление</b><span class="rangeVal"><span id="sleepRecoveryVal">—</span>/5</span></div>
-    <input id="sleepRecovery" type="hidden" value="3" data-touched="0">
-    <div id="recoveryButtons" class="scoreButtons" aria-label="Восстановление от 1 до 5"></div>
-    <div class="scaleEnds"><span>1 — совсем не восстановился</span><span>5 — полностью восстановился</span></div>
-    <div id="sleepRecoveryText" class="muted" style="margin-top:6px">Не отмечено</div>
-    <div id="sleepRecoverySaved" class="muted" style="margin-top:4px"></div>
-  </div>
-  <div class="sleepScale">
     <div class="rangeHead"><b>Сонливость сейчас</b><span class="rangeVal"><span id="sleepinessVal">—</span>/5</span></div>
     <input id="sleepiness" type="hidden" value="3" data-touched="0">
     <div id="sleepinessButtons" class="scoreButtons" aria-label="Сонливость от 1 до 5"></div>
@@ -71,6 +63,14 @@ textarea{min-height:90px}.exercise{border:1px solid var(--b);border-radius:10px;
     <div class="scaleEnds"><span>1 — совсем не устал</span><span>5 — полностью выжат</span></div>
     <div id="fatigueText" class="muted" style="margin-top:6px">Не отмечено</div>
     <div id="fatigueSaved" class="muted" style="margin-top:4px"></div>
+  </div>
+  <div class="sleepScale">
+    <div class="rangeHead"><b>Восстановление</b><span class="rangeVal"><span id="sleepRecoveryVal">—</span>/5</span></div>
+    <input id="sleepRecovery" type="hidden" value="3" data-touched="0">
+    <div id="recoveryButtons" class="scoreButtons" aria-label="Восстановление от 1 до 5"></div>
+    <div class="scaleEnds"><span>1 — совсем не восстановился</span><span>5 — полностью восстановился</span></div>
+    <div id="sleepRecoveryText" class="muted" style="margin-top:6px">Не отмечено</div>
+    <div id="sleepRecoverySaved" class="muted" style="margin-top:4px"></div>
   </div>
 </div>
 
@@ -141,13 +141,16 @@ textarea{min-height:90px}.exercise{border:1px solid var(--b);border-radius:10px;
 <details class="card"><summary>👁 Глаза / 👅 язык и глотка</summary><div id="special" class="grid"></div></details>
 
 <div class="card"><label class="s">Комментарий / самочувствие</label><textarea id="note"></textarea>
-<div class="actions"><button id="save" class="btn primary">💾 Сохранить утро</button><button id="sumBtn" class="btn">📋 Показать итог дня</button></div><div id="status" class="status"></div></div>
+<div class="actions"><button id="sumBtn" class="btn">📋 Показать итог дня</button></div><div id="status" class="status"></div></div>
 <div id="sumBox" class="card hidden"><b>Итог дня</b><div id="sumText" class="summary" style="margin-top:8px"></div></div>
 </section>
 
 <section id="history" class="hidden"><div class="card"><b>История</b><div id="historyList" style="margin-top:10px"></div></div></section>
 <section id="stats" class="hidden"><div class="card"><b>Последние 7 дней</b><div id="stats7" class="stats" style="margin-top:10px"></div></div><div class="card"><b>Последние 30 дней</b><div id="stats30" class="stats" style="margin-top:10px"></div></div></section>
-<section id="data" class="hidden"><div class="card"><b>Резервная копия</b><div class="actions"><button id="json" class="btn">Экспорт JSON</button><button id="csv" class="btn">Экспорт CSV</button><label class="btn">Импорт JSON<input id="import" type="file" accept=".json" hidden></label></div><div id="dataStatus" class="status"></div></div></section>
+<section id="data" class="hidden">
+<div class="card"><b>Резервная копия</b><div class="actions"><button id="json" class="btn">Экспорт JSON</button><button id="csv" class="btn">Экспорт CSV</button><label class="btn">Импорт JSON<input id="import" type="file" accept=".json" hidden></label></div><div id="dataStatus" class="status"></div></div>
+<div class="card"><b>☁️ Облако</b><div class="muted" style="margin-top:6px">Обычно синхронизация выполняется автоматически. Эта кнопка нужна только для принудительной проверки.</div><div class="actions"><button id="syncBtn" class="btn" type="button">🔄 Синхронизировать сейчас</button></div></div>
+</section>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -239,7 +242,7 @@ function scheduleAutosave(){
   },250);
 }
 function loadSleep(d){let s=ensureSleep(d),r=$("#sleepRecovery"),sl=$("#sleepiness"),f=$("#fatigue");r.value=s.recovery??3;r.dataset.touched=s.recovery===null?"0":"1";sl.value=s.sleepiness??3;sl.dataset.touched=s.sleepiness===null?"0":"1";f.value=s.fatigue??3;f.dataset.touched=s.fatigue===null?"0":"1";let rr=$("#sleepRecoverySaved"),ss=$("#sleepinessSaved"),fs=$("#fatigueSaved");if(rr)rr.textContent=s.recovery===null?"":"✓ сохранено: "+s.recovery+"/5";if(ss)ss.textContent=s.sleepiness===null?"":"✓ сохранено: "+s.sleepiness+"/5";if(fs)fs.textContent=s.fatigue===null?"":"✓ сохранено: "+s.fatigue+"/5";$("#slAppliance").checked=s.appliance;$("#slMask").checked=s.mask;$("#slAc").checked=s.ac;$("#slGotUp").checked=s.gotUp;$("#slToilet").checked=s.toilet;$("#slEarlyWake").checked=s.earlyWake;$("#slLateFood").checked=s.lateFood;$("#slNap").checked=s.nap;$("#slRinse").checked=s.rinse;$("#slShower").checked=s.shower;$("#slHumidity").checked=s.humidity;$("#slDisturbed").checked=s.disturbed;$("#slArousal").checked=s.arousal;$("#slAwakenings").value=s.awakenings||"";$("#slPosition").value=s.position;$("#slCongestion").value=s.congestion;$("#slDust").value=s.dust;$("#slSleepHours").value=s.sleepHours??"";$("#slAhi").value=s.ahi??"";$("#slOdi").value=s.odi??"";$("#slMinSpo2").value=s.minSpo2??"";$("#slSnore").value=s.snore??"";$("#slComment").value=s.comment||"";updateSleepLabels()}
-function load(){let d=data();$("#sleepCard").classList.toggle("hidden",period!=="morning");$("#weightCard").classList.toggle("hidden",period!=="morning");if(period==="morning"){loadSleep(d);setSleepCloudStatus(session?"idle":"local");$("#weightKg").value=d.weightKg??""}else{$("#weightKg").value=""};$("#cold").checked=d.cold;$$('[data-c]').forEach(x=>x.checked=!!d.c[x.dataset.c]);$("#kata").value=d.kata;$("#med").value=d.med||"";$("#mood").value=d.mood;$("#walk").value=d.walk||"";$("#steps").value=d.steps||"";$("#pace").value=d.pace;$("#note").value=d.note;ex.forEach(([id])=>{$('[data-sets="'+id+'"]').value=d.s[id].sets||"";renderSets(id)});$("#save").textContent=period==="morning"?"💾 Сохранить утро":"💾 Сохранить вечер";$("#status").textContent=d.saved?"Есть сохранённая запись.":"";$("#sumBox").classList.add("hidden")}
+function load(){let d=data();$("#sleepCard").classList.toggle("hidden",period!=="morning");$("#weightCard").classList.toggle("hidden",period!=="morning");if(period==="morning"){loadSleep(d);setSleepCloudStatus(session?"idle":"local");$("#weightKg").value=d.weightKg??""}else{$("#weightKg").value=""};$("#cold").checked=d.cold;$$('[data-c]').forEach(x=>x.checked=!!d.c[x.dataset.c]);$("#kata").value=d.kata;$("#med").value=d.med||"";$("#mood").value=d.mood;$("#walk").value=d.walk||"";$("#steps").value=d.steps||"";$("#pace").value=d.pace;$("#note").value=d.note;ex.forEach(([id])=>{$('[data-sets="'+id+'"]').value=d.s[id].sets||"";renderSets(id)});$("#status").textContent=d.saved?"Есть сохранённая запись.":"";$("#sumBox").classList.add("hidden")}
 function sleepDesc(s){if(!sleepHasData(s))return "";let a=[];if(s.recovery!==null)a.push("Восстановление: "+s.recovery+"/5");if(s.sleepiness!==null)a.push("Сонливость: "+s.sleepiness+"/5");if(s.fatigue!==null)a.push("Усталость: "+s.fatigue+"/5");let gear=[];if(s.appliance)gear.push("капа");if(s.mask)gear.push("маска");if(s.ac)gear.push("кондиционер");if(gear.length)a.push("Условия: "+gear.join(", "));if(s.awakenings)a.push("Пробуждения: "+s.awakenings);if(s.gotUp)a.push("Вставал ночью: да");if(s.toilet)a.push("Туалет ночью: да");if(s.earlyWake)a.push("Раннее пробуждение: да");if(s.position)a.push("Положение: "+s.position);if(s.congestion)a.push("Нос: "+s.congestion);if(s.dust)a.push("Комната: "+s.dust);let f=[];if(s.lateFood)f.push("поздняя еда");if(s.nap)f.push("дневной сон");if(s.rinse)f.push("промывание носа");if(s.shower)f.push("душ");if(s.humidity)f.push("повышенная влажность");if(s.disturbed)f.push("внешние пробуждения");if(s.arousal)f.push("стресс/перевозбуждение");if(f.length)a.push("Факторы: "+f.join(", "));let o=[];if(s.sleepHours!==null)o.push("сон "+s.sleepHours+" ч");if(s.ahi!==null)o.push("AHI "+s.ahi);if(s.odi!==null)o.push("ODI "+s.odi);if(s.minSpo2!==null)o.push("min SpO₂ "+s.minSpo2+"%");if(s.snore!==null)o.push("храп "+s.snore+"%");if(o.length)a.push("RingConn/SnoreClock: "+o.join(", "));if(s.comment)a.push("Комментарий о сне: "+s.comment);return "СОН:\n"+a.join("\n")}
 function desc(d){let a=[];let sd=sleepDesc(d.sleep);if(sd)a.push(sd);if(d.weightKg!==null&&d.weightKg!==undefined)a.push("Вес: "+d.weightKg+" кг");if(d.cold)a.push("Обливание: да");let c=Object.entries(d.c||{}).filter(x=>x[1]).map(x=>x[0]);if(c.length)a.push("Практики: "+c.join("; "));if(d.kata)a.push("Ката тай-чи: "+d.kata);if(d.med)a.push("Медитация: "+d.med+" мин"+(d.mood?" — "+d.mood:""));if(d.walk||d.steps||d.pace){let p=[];if(d.walk)p.push(d.walk+" мин");if(d.steps)p.push(d.steps+" шагов");if(d.pace)p.push("темп "+d.pace);a.push("Ходьба: "+p.join(", "))}let ss=[];ex.forEach(([id,n,u])=>{let v=d.s?.[id];if(v?.sets)ss.push(n+": "+v.v.slice(0,v.sets).join(" / ")+" ("+u+")")});if(ss.length)a.push("Силовые:\n"+ss.join("\n"));if(d.note)a.push("Комментарий: "+d.note);return a.length?a.join("\n"):"Нет записей"}
 async function syncAll(){if(!session)return;$("#authStatus").textContent="Синхронизация…";const {data:rows,error}=await sb.from('practice_entries').select('entry_date,period,payload,updated_at').eq('user_id',session.user.id);if(error){$("#authStatus").textContent="Ошибка синхронизации: "+error.message;return}(rows||[]).forEach(r=>{if(r.period==="morning"&&r.payload?.sleep)normalizeSleepScale(r.payload.sleep)});
@@ -250,7 +253,7 @@ async function signUp(){const email=$("#authEmail").value.trim(),password=$("#au
 async function logout(){await sb.auth.signOut();session=null;authUI();$("#authStatus").textContent="Вы вышли. Локальные данные остаются на устройстве."}
 $("#date").value=iso();day();load();
 $$('[data-period]').forEach(b=>b.onclick=()=>{capture(false);period=b.dataset.period;$$('[data-period]').forEach(x=>x.classList.toggle('on',x===b));load()});
-$("#save").onclick=()=>save(true);$("#sumBtn").onclick=()=>{capture(false);let d=day();$("#sumText").textContent=$("#date").value+"\n\nУТРО:\n"+desc(d.morning)+"\n\nВЕЧЕР:\n"+desc(d.evening);$("#sumBox").classList.remove("hidden")};$("#date").onchange=()=>{capture(false);day();load()};
+$("#sumBtn").onclick=()=>{capture(false);let d=day();$("#sumText").textContent=$("#date").value+"\n\nУТРО:\n"+desc(d.morning)+"\n\nВЕЧЕР:\n"+desc(d.evening);$("#sumBox").classList.remove("hidden")};$("#date").onchange=()=>{capture(false);day();load()};
 function screen(n){capture(false);$$('[data-screen]').forEach(b=>b.classList.toggle('on',b.dataset.screen===n));['today','history','stats','data'].forEach(x=>$('#'+x).classList.toggle('hidden',x!==n));if(n==='history')hist();if(n==='stats')stats()}
 $$('[data-screen]').forEach(b=>b.onclick=()=>screen(b.dataset.screen));
 function hist(){let b=$("#historyList");b.innerHTML="";let ds=Object.keys(db.days).sort().reverse();if(!ds.length){b.textContent="Нет сохранённых записей.";return}ds.forEach(k=>{let d=db.days[k],x=document.createElement("details");x.className="card";let s=document.createElement("summary");s.textContent=k;let t=document.createElement("div");t.className="summary";t.style.marginTop="8px";t.textContent="УТРО:\n"+desc(d.morning)+"\n\nВЕЧЕР:\n"+desc(d.evening);x.append(s,t);b.append(x)})}
