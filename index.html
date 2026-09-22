@@ -18,7 +18,11 @@ details summary{font-weight:800;cursor:pointer;list-style:none}details summary:a
 .check input{width:20px;height:20px;flex:0 0 auto}label.s{display:block;font-size:13px;color:var(--m);margin:6px 0}
 input[type=number],input[type=date],select,textarea{width:100%;min-height:44px;border:1px solid var(--b);border-radius:9px;padding:9px;background:var(--p);color:var(--t)}
 input[type=range]{width:100%;min-height:36px;accent-color:#6b8afd}.rangeHead{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.rangeVal{font-size:22px;font-weight:800}.scaleEnds{display:flex;justify-content:space-between;font-size:12px;color:var(--m)}
-.sleepScale{border:1px solid var(--b);border-radius:10px;padding:10px}.subcard{border:1px solid var(--b);border-radius:10px;padding:10px;margin-top:12px;background:color-mix(in srgb,var(--p) 94%,var(--a))}
+.sleepScale{border:1px solid var(--b);border-radius:10px;padding:10px}
+.scoreButtons{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;margin-top:10px}
+.scoreBtn{min-height:44px;border:1px solid var(--b);border-radius:9px;background:var(--p);color:var(--t);font-weight:700;font-size:17px;padding:6px}
+.scoreBtn.selected{background:var(--a);border:2px solid #6b8afd;font-weight:900}
+.subcard{border:1px solid var(--b);border-radius:10px;padding:10px;margin-top:12px;background:color-mix(in srgb,var(--p) 94%,var(--a))}
 textarea{min-height:90px}.exercise{border:1px solid var(--b);border-radius:10px;padding:10px;margin-top:10px}.name{font-weight:700}.sets{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:8px}
 .hidden{display:none!important}.muted{color:var(--m);font-size:13px}.status{min-height:20px;color:var(--m);font-size:14px}.summary{white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:14px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px}.stat{border:1px solid var(--b);border-radius:10px;padding:10px}.stat b{font-size:23px}
@@ -46,14 +50,16 @@ textarea{min-height:90px}.exercise{border:1px solid var(--b);border-radius:10px;
 <div class="grid">
   <div class="sleepScale">
     <div class="rangeHead"><b>Восстановление</b><span class="rangeVal"><span id="sleepRecoveryVal">—</span>/10</span></div>
-    <input id="sleepRecovery" type="range" min="0" max="10" step="1" value="6">
+    <input id="sleepRecovery" type="hidden" value="6" data-touched="0">
+    <div id="recoveryButtons" class="scoreButtons" aria-label="Восстановление от 0 до 10"></div>
     <div class="scaleEnds"><span>0 — совсем разбит</span><span>10 — полностью восстановился</span></div>
     <div id="sleepRecoveryText" class="muted" style="margin-top:6px">Не отмечено</div>
     <div id="sleepRecoverySaved" class="muted" style="margin-top:4px"></div>
   </div>
   <div class="sleepScale">
     <div class="rangeHead"><b>Сонливость сейчас</b><span class="rangeVal"><span id="sleepinessVal">—</span>/9</span></div>
-    <input id="sleepiness" type="range" min="1" max="9" step="1" value="5">
+    <input id="sleepiness" type="hidden" value="5" data-touched="0">
+    <div id="sleepinessButtons" class="scoreButtons" aria-label="Сонливость от 1 до 9"></div>
     <div class="scaleEnds"><span>1 — очень бодрый</span><span>9 — трудно не заснуть</span></div>
     <div id="sleepinessText" class="muted" style="margin-top:6px">Не отмечено</div>
     <div id="sleepinessSaved" class="muted" style="margin-top:4px"></div>
@@ -164,7 +170,13 @@ ex.forEach(([id,n])=>{let r=document.createElement("div");r.className="exercise"
 function renderSets(id){let d=data().s[id],cnt=num($('[data-sets="'+id+'"]').value,10),box=$('[data-box="'+id+'"]'),unit=ex.find(x=>x[0]===id)[2];d.sets=cnt;while(d.v.length<cnt)d.v.push(0);d.v=d.v.slice(0,cnt);box.innerHTML="";for(let i=0;i<cnt;i++){let w=document.createElement("div"),l=document.createElement("label"),inp=document.createElement("input");l.className="s";l.textContent="Подход "+(i+1)+", "+unit;inp.type="number";inp.min=0;inp.value=d.v[i]||"";inp.oninput=()=>{d.v[i]=num(inp.value,1000);scheduleAutosave()};w.append(l,inp);box.append(w)}}
 const recoveryText=v=>v<=1?"Практически не восстановился":v<=3?"Очень плохо восстановился":v===4?"Скорее не выспался":v===5?"Частично восстановился":v===6?"Более-менее выспался":v===7?"Хорошо выспался":v===8?"Очень хорошо восстановился":v===9?"Почти идеально":"Полностью восстановился";
 const sleepinessText=v=>v===1?"Очень бодрый":v===2?"Бодрый":v===3?"Скорее бодрый":v===4?"Немного сонный":v===5?"Ни бодрый, ни сонный":v===6?"Заметная сонливость":v===7?"Сонный":v===8?"Очень сонный":"Очень трудно не заснуть";
-function updateSleepLabels(){let r=$("#sleepRecovery"),s=$("#sleepiness"),rt=r.dataset.touched==="1",st=s.dataset.touched==="1";$("#sleepRecoveryVal").textContent=rt?r.value:"—";$("#sleepinessVal").textContent=st?s.value:"—";$("#sleepRecoveryText").textContent=rt?recoveryText(Number(r.value)):"Не отмечено";$("#sleepinessText").textContent=st?sleepinessText(Number(s.value)):"Не отмечено"}
+function syncScoreButtons(){
+  [["#recoveryButtons","#sleepRecovery"],["#sleepinessButtons","#sleepiness"]].forEach(([boxSel,inputSel])=>{
+    let input=$(inputSel),touched=input.dataset.touched==="1";
+    $$(boxSel+" .scoreBtn").forEach(b=>b.classList.toggle("selected",touched&&b.dataset.value===input.value));
+  });
+}
+function updateSleepLabels(){let r=$("#sleepRecovery"),s=$("#sleepiness"),rt=r.dataset.touched==="1",st=s.dataset.touched==="1";$("#sleepRecoveryVal").textContent=rt?r.value:"—";$("#sleepinessVal").textContent=st?s.value:"—";$("#sleepRecoveryText").textContent=rt?recoveryText(Number(r.value)):"Не отмечено";$("#sleepinessText").textContent=st?sleepinessText(Number(s.value)):"Не отмечено";syncScoreButtons()}
 function captureSleep(d){let s=ensureSleep(d),r=$("#sleepRecovery"),sl=$("#sleepiness");s.recovery=r.dataset.touched==="1"?num(r.value,10):null;s.sleepiness=sl.dataset.touched==="1"?Math.max(1,num(sl.value,9)):null;s.appliance=$("#slAppliance").checked;s.mask=$("#slMask").checked;s.ac=$("#slAc").checked;s.gotUp=$("#slGotUp").checked;s.toilet=$("#slToilet").checked;s.earlyWake=$("#slEarlyWake").checked;s.lateFood=$("#slLateFood").checked;s.nap=$("#slNap").checked;s.rinse=$("#slRinse").checked;s.shower=$("#slShower").checked;s.humidity=$("#slHumidity").checked;s.disturbed=$("#slDisturbed").checked;s.arousal=$("#slArousal").checked;s.awakenings=num($("#slAwakenings").value,20);s.position=$("#slPosition").value;s.congestion=$("#slCongestion").value;s.dust=$("#slDust").value;s.sleepHours=dec($("#slSleepHours").value,0,24);s.ahi=dec($("#slAhi").value,0,100);s.odi=dec($("#slOdi").value,0,100);s.minSpo2=dec($("#slMinSpo2").value,50,100);s.snore=dec($("#slSnore").value,0,100);s.comment=$("#slComment").value.trim()}
 function capture(mark=true){let d=data();d.cold=$("#cold").checked;if(period==="morning")d.weightKg=dec($("#weightKg").value,20,300);$$('[data-c]').forEach(x=>d.c[x.dataset.c]=x.checked);d.kata=$("#kata").value;d.med=num($("#med").value,600);d.mood=$("#mood").value;d.walk=num($("#walk").value,1000);d.steps=num($("#steps").value,100000);d.pace=$("#pace").value;d.note=$("#note").value.trim();if(period==="morning")captureSleep(d);ex.forEach(([id])=>{let s=d.s[id];s.sets=num($('[data-sets="'+id+'"]')?.value,10);$$('[data-box="'+id+'"] input').forEach((x,i)=>s.v[i]=num(x.value,1000))});if(mark)d.saved=new Date().toISOString();persist();return d}
 async function cloudSave(date,p,d){if(!session||!hasData(d))return;const ts=d.saved||new Date().toISOString(),base={user_id:session.user.id,entry_date:date,period:p,payload:d,updated_at:ts};const {data:existing,error:findError}=await sb.from('practice_entries').select('id').eq('user_id',session.user.id).eq('entry_date',date).eq('period',p).limit(1);if(findError)throw findError;if(existing&&existing.length){const {error}=await sb.from('practice_entries').update({payload:d,updated_at:ts}).eq('id',existing[0].id).eq('user_id',session.user.id);if(error)throw error}else{const {error}=await sb.from('practice_entries').insert(base);if(error)throw error}}
@@ -255,16 +267,29 @@ function saveSleepScaleNow(el,field,max){
     }
   },250);
 }
-function bindSleepScale(selector,field,max){
-  let el=$(selector),fn=()=>saveSleepScaleNow(el,field,max);
-  el.addEventListener("input",fn);
-  el.addEventListener("change",fn);
-  el.addEventListener("pointerup",fn);
-  el.addEventListener("touchend",()=>setTimeout(fn,0),{passive:true});
+function buildScoreButtons(boxSelector,inputSelector,field,min,max){
+  let box=$(boxSelector),input=$(inputSelector);
+  box.innerHTML="";
+  for(let v=min;v<=max;v++){
+    let b=document.createElement("button");
+    b.type="button";
+    b.className="scoreBtn";
+    b.dataset.value=String(v);
+    b.textContent=String(v);
+    b.setAttribute("aria-label",(field==="recovery"?"Восстановление ":"Сонливость ")+v);
+    b.addEventListener("click",()=>{
+      input.value=String(v);
+      input.dataset.touched="1";
+      updateSleepLabels();
+      saveSleepScaleNow(input,field,max);
+    });
+    box.appendChild(b);
+  }
+  syncScoreButtons();
 }
-bindSleepScale("#sleepRecovery","recovery",10);
+buildScoreButtons("#recoveryButtons","#sleepRecovery","recovery",0,10);
 async function copySleepRecord(){capture(false);let s=day().morning.sleep;if(!sleepHasData(s)){$("#copySleepStatus").textContent="Сначала заполните запись сна.";return}let text=$("#date").value+"\n"+sleepDesc(s);try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text)}else{let ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.focus();ta.select();document.execCommand("copy");ta.remove()}$("#copySleepStatus").textContent="Запись сна скопирована — можно вставить её в ChatGPT."}catch(e){$("#copySleepStatus").textContent="Не удалось скопировать. Откройте итог дня и скопируйте текст вручную."}}
-bindSleepScale("#sleepiness","sleepiness",9);
+buildScoreButtons("#sleepinessButtons","#sleepiness","sleepiness",1,9);
 $("#copySleepBtn").onclick=copySleepRecord;
 $$('#today input,#today select,#today textarea').forEach(el=>{
   if(el.matches('[data-sets],#sleepRecovery,#sleepiness'))return;
