@@ -328,24 +328,9 @@ function metricDefinitions(){
     {id:"med",label:"Практики — медитация",unit:" мин",min:0,get:d=>sumParts(d,"med")},
     {id:"walk",label:"Активность — ходьба",unit:" мин",min:0,get:d=>sumParts(d,"walk")},
     {id:"steps",label:"Активность — шаги",unit:"",min:0,get:d=>sumParts(d,"steps")},
-    {id:"strength",label:"Силовые — всего подходов",unit:"",min:0,get:d=>totalStrengthSets(d)},
-    {id:"cold",label:"Практики — холодное обливание",binary:true,min:0,max:1,get:d=>anyPart(d,x=>x?!!x.cold:null)},
-    {id:"appliance",label:"Сон — капа",binary:true,min:0,max:1,get:d=>sleepValue(d,"appliance")},
-    {id:"mask",label:"Сон — маска",binary:true,min:0,max:1,get:d=>sleepValue(d,"mask")},
-    {id:"ac",label:"Сон — кондиционер",binary:true,min:0,max:1,get:d=>sleepValue(d,"ac")},
-    {id:"gotUp",label:"Сон — вставал ночью",binary:true,min:0,max:1,get:d=>sleepValue(d,"gotUp")},
-    {id:"toilet",label:"Сон — туалет ночью",binary:true,min:0,max:1,get:d=>sleepValue(d,"toilet")},
-    {id:"earlyWake",label:"Сон — раннее пробуждение",binary:true,min:0,max:1,get:d=>sleepValue(d,"earlyWake")},
-    {id:"lateFood",label:"Сон — поздняя еда",binary:true,min:0,max:1,get:d=>sleepValue(d,"lateFood")},
-    {id:"nap",label:"Сон — дневной сон",binary:true,min:0,max:1,get:d=>sleepValue(d,"nap")},
-    {id:"rinse",label:"Сон — промывание носа",binary:true,min:0,max:1,get:d=>sleepValue(d,"rinse")},
-    {id:"shower",label:"Сон — душ перед сном",binary:true,min:0,max:1,get:d=>sleepValue(d,"shower")},
-    {id:"humidity",label:"Сон — повышенная влажность",binary:true,min:0,max:1,get:d=>sleepValue(d,"humidity")},
-    {id:"disturbed",label:"Сон — внешние пробуждения",binary:true,min:0,max:1,get:d=>sleepValue(d,"disturbed")},
-    {id:"arousal",label:"Сон — стресс / перевозбуждение",binary:true,min:0,max:1,get:d=>sleepValue(d,"arousal")}
+    {id:"strength",label:"Силовые — всего подходов",unit:"",min:0,get:d=>totalStrengthSets(d)}
   ];
   for(const [id,name] of ex)m.push({id:"ex:"+id,label:"Силовые — "+name+", подходы",unit:"",min:0,get:d=>strengthSets(d,id)});
-  for(const arr of Object.values(lists))for(const name of arr)m.push({id:"practice:"+name,label:"Практика — "+name,binary:true,min:0,max:1,get:d=>anyPart(d,x=>x&&x.c?!!x.c[name]:null)});
   return m;
 }
 let metricDefs=null;
