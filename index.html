@@ -342,6 +342,11 @@ function ensureMetricOptions(){
   sel.value="sleepHours";
 }
 function metricDateMs(k){let [y,m,d]=k.split("-").map(Number);return Date.UTC(y,m-1,d)}
+const applianceAdjustments=[
+  {date:"2026-08-31",label:"31.08 · +5/+3"},
+  {date:"2026-09-15",label:"15.09 · +4/+4"}
+];
+const sleepMetricIds=new Set(["recovery","sleepiness","fatigue","sleepHours","awakenings","ahi","odi","minSpo2","snore"]);
 function shortDate(k){let [y,m,d]=k.split("-");return d+"."+m}
 function fmtMetric(v,m){
   if(m.binary)return v>=.5?"Да":"Нет";
@@ -369,10 +374,18 @@ function renderMetricChart(){
   if(m.min===undefined){let pad=(yMax-yMin)*.12||1;yMin-=pad}
   if(m.max===undefined){let pad=(yMax-yMin)*.12||1;yMax+=pad}
   if(m.min===0)yMin=0;
-  let W=760,H=300,L=54,R=18,T=20,B=42,pw=W-L-R,ph=H-T-B;
+  let visibleAdjustments=sleepMetricIds.has(m.id)?applianceAdjustments
+    .map(a=>({...a,ms:metricDateMs(a.date)+18*3600000}))
+    .filter(a=>a.ms>=start&&a.ms<=end):[];
+  let W=760,H=300,L=54,R=18,T=visibleAdjustments.length?38:20,B=42,pw=W-L-R,ph=H-T-B;
   const x=ms=>L+(ms-start)/Math.max(1,end-start)*pw;
   const y=v=>T+(yMax-v)/(yMax-yMin)*ph;
-  let grid="",labels="";
+  let grid="",labels="",markers="";
+  visibleAdjustments.forEach(a=>{
+    let xx=x(a.ms),anchor=xx>W-150?"end":"start",tx=anchor==="end"?xx-4:xx+4;
+    markers+='<line x1="'+xx.toFixed(1)+'" y1="'+T+'" x2="'+xx.toFixed(1)+'" y2="'+(T+ph)+'" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" opacity=".5"><title>Подкрутка капы '+a.label+'</title></line>'+
+      '<text x="'+tx.toFixed(1)+'" y="15" text-anchor="'+anchor+'" font-size="10" font-weight="700" fill="currentColor" opacity=".78">Капа '+a.label+'</text>';
+  });
   for(let i=0;i<=4;i++){
     let v=yMax-(yMax-yMin)*i/4,yy=T+ph*i/4;
     let lab=m.binary?(i===0?"Да":i===4?"Нет":""):Number(v.toFixed(2)).toString();
@@ -386,14 +399,15 @@ function renderMetricChart(){
   let xlabels='<text x="'+L+'" y="'+(H-12)+'" text-anchor="start" font-size="11" fill="currentColor" opacity=".7">'+dl(first)+'</text>'+
     '<text x="'+(L+pw/2)+'" y="'+(H-12)+'" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">'+dl(mid)+'</text>'+
     '<text x="'+(W-R)+'" y="'+(H-12)+'" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">'+dl(last)+'</text>';
-  box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+m.label+'">'+grid+labels+
+  box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+m.label+'">'+grid+labels+markers+
     '<line x1="'+L+'" y1="'+(T+ph)+'" x2="'+(W-R)+'" y2="'+(T+ph)+'" stroke="currentColor" opacity=".3"/>'+
     '<path d="'+path+'" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+dots+xlabels+'</svg>';
   let avgText=m.binary?Math.round(avg*100)+"%":fmtMetric(avg,m);
   let minText=m.binary?"—":fmtMetric(minV,m),maxText=m.binary?"—":fmtMetric(maxV,m);
   sum.innerHTML='<div class="stat"><b>'+avgText+'</b><div class="muted">Среднее · '+vals.length+' наблюд.</div></div>'+
     (m.binary?'':'<div class="stat"><b>'+minText+'</b><div class="muted">Минимум</div></div><div class="stat"><b>'+maxText+'</b><div class="muted">Максимум</div></div>')+
-    '<div class="stat"><b>'+n+'</b><div class="muted">Дней в периоде</div></div>';
+    '<div class="stat"><b>'+n+'</b><div class="muted">Дней в периоде</div></div>'+
+    (visibleAdjustments.length?'<div class="muted" style="width:100%;margin-top:2px">Пунктиром отмечены подкрутки капы: '+visibleAdjustments.map(a=>a.label).join("; ")+'.</div>':'');
 }
 function stat(n){let r={med:0,walk:0,steps:0,cold:0,sets:0,days:0,sleepN:0,recovery:0,recoveryN:0,sleepiness:0,sleepinessN:0,fatigue:0,fatigueN:0,ahi:0,ahiN:0,snore:0,snoreN:0},st=since(n);Object.entries(db.days).forEach(([k,d])=>{if(k<st)return;let had=false;['morning','evening'].forEach(p=>{let x=d[p]||bp();r.med+=x.med||0;r.walk+=x.walk||0;r.steps+=x.steps||0;r.cold+=x.cold?1:0;ex.forEach(([id])=>r.sets+=x.s?.[id]?.sets||0);if(hasData(x))had=true});let s=d.morning?.sleep;if(s)normalizeSleepScale(s);if(sleepHasData(s)){r.sleepN++;if(s.recovery!==null){r.recovery+=s.recovery;r.recoveryN++}if(s.sleepiness!==null){r.sleepiness+=s.sleepiness;r.sleepinessN++}if(s.fatigue!==null){r.fatigue+=s.fatigue;r.fatigueN++}if(s.ahi!==null){r.ahi+=s.ahi;r.ahiN++}if(s.snore!==null){r.snore+=s.snore;r.snoreN++}}if(had)r.days++});return r}
 function fill(id,r){let b=$("#"+id);b.innerHTML="";let vals=[["Медитация",r.med+" мин"],["Ходьба",r.walk+" мин"],["Шаги",r.steps],["Обливания",r.cold],["Силовые подходы",r.sets],["Дни",r.days]];if(r.recoveryN)vals.push(["Среднее восстановление",(r.recovery/r.recoveryN).toFixed(1)+"/5"]);if(r.sleepinessN)vals.push(["Средняя сонливость",(r.sleepiness/r.sleepinessN).toFixed(1)+"/5"]);if(r.fatigueN)vals.push(["Средняя усталость",(r.fatigue/r.fatigueN).toFixed(1)+"/5"]);if(r.ahiN)vals.push(["Средний AHI",(r.ahi/r.ahiN).toFixed(1)]);if(r.snoreN)vals.push(["Средний храп",(r.snore/r.snoreN).toFixed(1)+"%"]);vals.forEach(x=>{let d=document.createElement("div");d.className="stat";d.innerHTML="<b>"+x[1]+"</b><div class=muted>"+x[0]+"</div>";b.append(d)})}
