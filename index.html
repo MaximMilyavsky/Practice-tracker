@@ -370,6 +370,7 @@ function renderMetricChart(){
   }
   let vals=pts.map(x=>x.value),avg=vals.reduce((a,b)=>a+b,0)/vals.length,minV=Math.min(...vals),maxV=Math.max(...vals);
   let yMin=m.min!==undefined?m.min:minV,yMax=m.max!==undefined?m.max:maxV;
+  if(m.id==="ahi"){yMin=0;yMax=Math.max(17,yMax)}
   if(yMin===yMax){yMin-=1;yMax+=1}
   if(m.min===undefined){let pad=(yMax-yMin)*.12||1;yMin-=pad}
   if(m.max===undefined){let pad=(yMax-yMin)*.12||1;yMax+=pad}
@@ -392,6 +393,15 @@ function renderMetricChart(){
     grid+='<line x1="'+L+'" y1="'+yy+'" x2="'+(W-R)+'" y2="'+yy+'" stroke="currentColor" opacity=".12"/>';
     if(lab)labels+='<text x="'+(L-8)+'" y="'+(yy+4)+'" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">'+lab+'</text>';
   }
+  let thresholds="";
+  if(m.id==="ahi"){
+    for(const th of [{v:5,label:"AHI 5"},{v:15,label:"AHI 15"}]){
+      if(th.v<yMin||th.v>yMax)continue;
+      let yy=y(th.v);
+      thresholds+='<line x1="'+L+'" y1="'+yy.toFixed(1)+'" x2="'+(W-R)+'" y2="'+yy.toFixed(1)+'" stroke="currentColor" stroke-width="1.4" stroke-dasharray="7 5" opacity=".42"><title>'+th.label+'</title></line>'+
+        '<text x="'+(W-R-4)+'" y="'+(yy-5).toFixed(1)+'" text-anchor="end" font-size="10" font-weight="700" fill="currentColor" opacity=".72">'+th.label+'</text>';
+    }
+  }
   let path=pts.map((p,i)=>(i?"L":"M")+x(p.ms).toFixed(1)+","+y(p.value).toFixed(1)).join(" ");
   let dots=pts.map(p=>'<circle cx="'+x(p.ms).toFixed(1)+'" cy="'+y(p.value).toFixed(1)+'" r="3.5" fill="currentColor"><title>'+p.date+": "+fmtMetric(p.value,m)+'</title></circle>').join("");
   let first=new Date(start),mid=new Date(start+(end-start)/2),last=new Date(end);
@@ -399,7 +409,7 @@ function renderMetricChart(){
   let xlabels='<text x="'+L+'" y="'+(H-12)+'" text-anchor="start" font-size="11" fill="currentColor" opacity=".7">'+dl(first)+'</text>'+
     '<text x="'+(L+pw/2)+'" y="'+(H-12)+'" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">'+dl(mid)+'</text>'+
     '<text x="'+(W-R)+'" y="'+(H-12)+'" text-anchor="end" font-size="11" fill="currentColor" opacity=".7">'+dl(last)+'</text>';
-  box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+m.label+'">'+grid+labels+markers+
+  box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+m.label+'">'+grid+labels+markers+thresholds+
     '<line x1="'+L+'" y1="'+(T+ph)+'" x2="'+(W-R)+'" y2="'+(T+ph)+'" stroke="currentColor" opacity=".3"/>'+
     '<path d="'+path+'" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+dots+xlabels+'</svg>';
   let avgText=m.binary?Math.round(avg*100)+"%":fmtMetric(avg,m);
