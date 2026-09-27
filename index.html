@@ -188,7 +188,7 @@ const bs=()=>({scaleVersion:2,recovery:null,sleepiness:null,fatigue:null,applian
 const bp=()=>({cold:false,weightKg:null,c:{},kata:"",med:0,mood:"",walk:0,steps:0,pace:"",s:bx(),sleep:bs(),note:"",saved:null});
 let db;try{db=JSON.parse(localStorage.getItem(K))||{days:{}}}catch(e){db={days:{}}}
 Object.values(db.days||{}).forEach(v=>{if(v?.morning?.sleep)normalizeSleepScale(v.morning.sleep)});
-let period="morning",session=null,saveTimer=null;
+let period="morning",session=null,saveTimer=null,currentDate=null;
 const iso=()=>{let d=new Date(),m=String(d.getMonth()+1).padStart(2,"0"),a=String(d.getDate()).padStart(2,"0");return d.getFullYear()+"-"+m+"-"+a};
 const num=(v,max)=>Math.max(0,Math.min(max,Math.trunc(Number(v)||0)));
 const dec=(v,min,max)=>{if(v===""||v==null)return null;let n=Number(v);return Number.isFinite(n)?Math.max(min,Math.min(max,n)):null};
@@ -273,9 +273,21 @@ function authUI(){const on=!!session;$("#signedOut").classList.toggle("hidden",o
 async function signIn(){const email=$("#authEmail").value.trim(),password=$("#authPassword").value;if(!email||!password){$("#authStatus").textContent="Введите email и пароль.";return}$("#authStatus").textContent="Вход…";const {data,error}=await sb.auth.signInWithPassword({email,password});if(error){$("#authStatus").textContent="Ошибка входа: "+error.message;return}session=data.session;authUI();await syncAll()}
 async function signUp(){const email=$("#authEmail").value.trim(),password=$("#authPassword").value;if(!email||password.length<6){$("#authStatus").textContent="Введите email и пароль минимум из 6 символов.";return}$("#authStatus").textContent="Создание аккаунта…";const {data,error}=await sb.auth.signUp({email,password});if(error){$("#authStatus").textContent="Ошибка: "+error.message;return}session=data.session;authUI();$("#authStatus").textContent=session?"Аккаунт создан и вход выполнен.":"Аккаунт создан. Если Supabase прислал письмо, подтвердите email, затем войдите.";if(session)await syncAll()}
 async function logout(){await sb.auth.signOut();session=null;authUI();$("#authStatus").textContent="Вы вышли. Локальные данные остаются на устройстве."}
-$("#date").value=iso();day();load();
+$("#date").value=iso();currentDate=$("#date").value;day();load();
 $$('[data-period]').forEach(b=>b.onclick=()=>{capture(false);period=b.dataset.period;$$('[data-period]').forEach(x=>x.classList.toggle('on',x===b));load()});
-$("#sumBtn").onclick=()=>{capture(false);let d=day();$("#sumText").textContent=$("#date").value+"\n\nУТРО:\n"+desc(d.morning)+"\n\nВЕЧЕР:\n"+desc(d.evening);$("#sumBox").classList.remove("hidden")};$("#date").onchange=()=>{capture(false);day();load()};
+$("#sumBtn").onclick=()=>{capture(false);let d=day();$("#sumText").textContent=$("#date").value+"\n\nУТРО:\n"+desc(d.morning)+"\n\nВЕЧЕР:\n"+desc(d.evening);$("#sumBox").classList.remove("hidden")};
+$("#date").onchange=()=>{
+  const nextDate=$("#date").value;
+  if(!nextDate||nextDate===currentDate){load();return}
+  clearTimeout(saveTimer);
+  // Save the visible form back to the date it was loaded from, not to the newly selected date.
+  $("#date").value=currentDate;
+  capture(false);
+  $("#date").value=nextDate;
+  currentDate=nextDate;
+  day();
+  load();
+};
 function screen(n){capture(false);$$('[data-screen]').forEach(b=>b.classList.toggle('on',b.dataset.screen===n));['today','history','stats','data'].forEach(x=>$('#'+x).classList.toggle('hidden',x!==n));if(n==='history')hist();if(n==='stats')stats()}
 $$('[data-screen]').forEach(b=>b.onclick=()=>screen(b.dataset.screen));
 function hist(){let b=$("#historyList");b.innerHTML="";let ds=Object.keys(db.days).sort().reverse();if(!ds.length){b.textContent="Нет сохранённых записей.";return}ds.forEach(k=>{let d=db.days[k],x=document.createElement("details");x.className="card";let s=document.createElement("summary");s.textContent=k;let t=document.createElement("div");t.className="summary";t.style.marginTop="8px";t.textContent="УТРО:\n"+desc(d.morning)+"\n\nВЕЧЕР:\n"+desc(d.evening);x.append(s,t);b.append(x)})}
