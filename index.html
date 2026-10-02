@@ -356,7 +356,8 @@ function ensureMetricOptions(){
 function metricDateMs(k){let [y,m,d]=k.split("-").map(Number);return Date.UTC(y,m-1,d)}
 const applianceAdjustments=[
   {date:"2026-08-31",label:"31.08 · +5/+3"},
-  {date:"2026-09-15",label:"15.09 · +4/+4"}
+  {date:"2026-09-15",label:"15.09 · +4/+4"},
+  {date:"2026-10-01",label:"01.10 · +2/+2"}
 ];
 const sleepMetricIds=new Set(["recovery","sleepiness","fatigue","sleepHours","awakenings","ahi","odi","minSpo2","snore"]);
 function shortDate(k){let [y,m,d]=k.split("-");return d+"."+m}
