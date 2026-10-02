@@ -391,14 +391,14 @@ function renderMetricChart(){
   let visibleAdjustments=sleepMetricIds.has(m.id)?applianceAdjustments
     .map(a=>({...a,ms:metricDateMs(a.date)+18*3600000}))
     .filter(a=>a.ms>=start&&a.ms<=end):[];
-  let W=760,H=300,L=54,R=18,T=visibleAdjustments.length?38:20,B=42,pw=W-L-R,ph=H-T-B;
+  let W=760,H=300,L=54,R=34,T=visibleAdjustments.length?38:20,B=42,pw=W-L-R,ph=H-T-B;
   const x=ms=>L+(ms-start)/Math.max(1,end-start)*pw;
   const y=v=>T+(yMax-v)/(yMax-yMin)*ph;
   let grid="",labels="",markers="";
   visibleAdjustments.forEach(a=>{
     let xx=x(a.ms),anchor=xx>W-150?"end":"start",tx=anchor==="end"?xx-4:xx+4;
-    markers+='<line x1="'+xx.toFixed(1)+'" y1="'+T+'" x2="'+xx.toFixed(1)+'" y2="'+(T+ph)+'" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" opacity=".5"><title>Подкрутка капы '+a.label+'</title></line>'+
-      '<text x="'+tx.toFixed(1)+'" y="15" text-anchor="'+anchor+'" font-size="10" font-weight="700" fill="currentColor" opacity=".78">Капа '+a.label+'</text>';
+    markers+='<line x1="'+xx.toFixed(1)+'" y1="'+T+'" x2="'+xx.toFixed(1)+'" y2="'+(T+ph)+'" stroke="currentColor" stroke-width="2" stroke-dasharray="5 4" opacity=".72"><title>Подкрутка капы '+a.label+'</title></line>'+
+      '<text x="'+tx.toFixed(1)+'" y="15" text-anchor="'+anchor+'" font-size="10" font-weight="700" fill="currentColor" opacity=".9">Капа '+a.label+'</text>';
   });
   for(let i=0;i<=4;i++){
     let v=yMax-(yMax-yMin)*i/4,yy=T+ph*i/4;
